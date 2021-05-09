@@ -1,4 +1,4 @@
-from utils.notify import send_message_to_line as line
+from utils.line import send_message_to_line as line
 
 
 if __name__ == '__main__':
