@@ -19,7 +19,6 @@ if __name__ == '__main__':
     # input argument
     argv = sys.argv
 
-    program = argv[0]
     in_dir = argv[1]         # str: input directory
     out_dir = argv[2]        # str: output directory
     f_n = argv[3]            # str: filename
@@ -27,6 +26,15 @@ if __name__ == '__main__':
     start = int(argv[5])     # int: start image index
     end = int(argv[6])       # int: end image index
     step = int(argv[7])      # int: step (interval)
+
+    print("Params: ")
+    print(f"\tin_dir: {in_dir}")
+    print(f"\tout_dir: {out_dir}")
+    print(f"\tf_n: {f_n}")
+    print(f"\tmethod: {method}")
+    print(f"\tstart: {start}")
+    print(f"\tend: {end}")
+    print(f"\tstep: {step}")
 
     # option: px/# to mm/s
     if len(argv) > 8:
@@ -37,30 +45,51 @@ if __name__ == '__main__':
         y2 = int(argv[12])   # int: coordinate y of p2
         fps = int(argv[13])  # int: fps
 
+        print(f"\tdiff: {diff}")
+        print(f"\tx1: {x1}")
+        print(f"\ty1: {y1}")
+        print(f"\tx2: {x2}")
+        print(f"\ty2: {y2}")
+        print(f"\tfps: {fps}")
+
     # pre-process
+    print("pre-process start!")
+
     # make background img
     bg_img = None
     for i in range(start, end, step):
         f_n_tmp = f_n + f"{i:08}.bmp"
-        tmp_img = cv2.imread(in_dir + "/" + f_n_tmp)
+        tmp_img = cv2.imread(in_dir + "/" + f_n_tmp, 0)
         if i == 0:
             bg_img = tmp_img
         else:
             bg_img = np.minimum(bg_img, tmp_img)
-    cv2.imwrite(out_dir + "/" + "bg_img.bmp", bg_img)
+    cv2.imwrite(out_dir + "/img/" + "bg_img.bmp", bg_img)
+
+    print("background img fin.")
 
     for i in range(start, end, step):
         f_n_tmp = f_n + f"{i:08}.bmp"
         pre_process = pre.Pre(in_dir=in_dir, out_dir=out_dir, filename=f_n_tmp, bg_img=bg_img)
 
+    print("pre-process fin.")
+
     # ptv process
+    print("ptv start!")
+
     ptv_process = ptv.PTV()
 
-    # post process
+    print("ptv fin.")
+
+    # post-process
+    print("post-process start!")
+
     post_process = post.Post()
+
+    print("post-process fin.")
 
     # send message to line
     elapsed_time = time.time() - p_start
-    line(message=f"[{program}]Program fin.\nTime: {elapsed_time/1000:d} [sec]")
+    line(message=f"\nProgram fin.\nTime: {elapsed_time/1000:.1f} [sec]")
 
-    print("Bye!")
+    print("Bye!!")
