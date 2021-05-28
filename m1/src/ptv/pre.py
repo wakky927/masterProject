@@ -32,7 +32,7 @@ class Pre(object):
         self.background_sub(p=process)
         self.binary_otsu(l=0, h=255, p=process)
         self.trimming(upper_left=[25, 902], lower_right=[1279, 83])
-        self.labeling()
+        self.labeling(p=process)
         self.save_csv()
 
     def read_img(self, filename):
@@ -70,7 +70,7 @@ class Pre(object):
             s = data[1:, -1]
             s = np.append(np.expand_dims(np.arange(1, ret), 1), np.expand_dims(s, 1), axis=1)
             df = pd.DataFrame(data=s, columns=['label', 'size'])
-            df_replace = df[df['size'] >= 30]
+            df_replace = pd.concat([df[df['size'] >= 30], df[df['size'] == 1]])
 
             for i in range(len(df_replace)):
                 label = df_replace.iloc[i, 0]
@@ -113,7 +113,7 @@ class Pre(object):
             # by visualization, tracer size < 30 px
             s = np.append(np.expand_dims(np.arange(1, ret), 1), np.expand_dims(s, 1), axis=1)
             df = pd.DataFrame(data=s, columns=['label', 'size'])
-            df_replace = df[df['size'] >= 30]
+            df_replace = pd.concat([df[df['size'] >= 30], df[df['size'] == 1]])
 
             for i in range(len(df_replace)):
                 label = df_replace.iloc[i, 0]
@@ -142,7 +142,7 @@ class Pre(object):
         filename = self.filename.replace('.bmp', '.csv')
 
         cols = ['x', 'y']
-        df = pd.DataFrame(data=self.pp, columns=cols).astype('int64')
+        df = pd.DataFrame(data=self.pp, columns=cols)
         df.to_csv(out_dir + '/' + filename)
 
 
@@ -158,5 +158,5 @@ if __name__ == '__main__':
     pre.background_sub()
     pre.binary_otsu(l=0, h=255)
     pre.trimming(upper_left=[25, 902], lower_right=[1279, 83])
-    pre.labeling(True)
+    pre.labeling()
     pre.save_csv()
