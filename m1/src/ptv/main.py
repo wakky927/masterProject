@@ -55,11 +55,15 @@ if __name__ == '__main__':
     # pre-process
     print("pre-process start!")
 
-    # make background img
+    # calibration and make background img
+    mtx = np.loadtxt("./cali/mtx.csv", delimiter=',', dtype=np.float32)
+    dist = np.loadtxt("./cali/dist.csv", delimiter=',', dtype=np.float32)
     bg_img = None
+
     for i in range(start, end, step):
         f_n_tmp = f_n + f"{i:08}.bmp"
         tmp_img = cv2.imread(in_dir + "/" + f_n_tmp, 0)
+        tmp_img = cv2.undistort(tmp_img, mtx, dist, None)
         if i == 0:
             bg_img = tmp_img
         else:
@@ -70,7 +74,7 @@ if __name__ == '__main__':
 
     for i in range(start, end, step):
         f_n_tmp = f_n + f"{i:08}.bmp"
-        pre_process = pre.Pre(in_dir=in_dir, out_dir=out_dir, filename=f_n_tmp, bg_img=bg_img)
+        pre_process = pre.Pre(in_dir=in_dir, out_dir=out_dir, filename=f_n_tmp, bg_img=bg_img, process=True)
 
     print("pre-process fin.")
 
