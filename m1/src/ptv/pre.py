@@ -21,6 +21,7 @@ class Pre(object):
         self.filename = filename
         self.bg_img = bg_img
         self.img = None
+        self.pp = None
 
         if process:
             self.precessing(process=process)
@@ -30,6 +31,7 @@ class Pre(object):
         self.cali()
         self.background_sub(p=process)
         self.binary_otsu(l=0, h=255, p=process)
+        self.trimming(upper_left=[25, 902], lower_right=[1279, 83])
         self.labeling()
         self.save_csv()
 
@@ -56,46 +58,30 @@ class Pre(object):
             os.makedirs(out_dir, exist_ok=True)
             cv2.imwrite(out_dir + "/" + self.filename, self.img)
 
+    def trimming(self, upper_left=None, lower_right=None):
+        self.img = self.img[83:902, 25:1279]
+
     def labeling(self, p=False):
         ret, markers, data, center = cv2.connectedComponentsWithStats(self.img)
 
-        if not p:
-            # color_src = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
-            # height, width = self.img.shape[:2]
-            # colors = []
-            #
-            # for i in range(1, ret + 1):
-            #     colors.append(np.array([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]))
-            #
-            # for y in range(0, height):
-            #     for x in range(0, width):
-            #         if markers[y, x] > 0:
-            #             m = markers[y, x]
-            #             color_src[y, x] = colors[markers[y, x]]
-            #         else:
-            #             color_src[y, x] = [0, 0, 0]
-            #
-            # cv2.putText(color_src, str(ret - 1), (20, 50), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 255))
+        if p:
+            center[0, 0], center[0, 1] = np.nan, np.nan  # bg
 
-            # graph visualization
-            f = data[1:, -1]
-            fig = plt.figure(figsize=(6, 4))
-            ax = fig.add_subplot(1, 1, 1)
-            ax.hist(f, bins=100)
-            ax.set_xlabel('size')
-            ax.set_ylabel('freq')
-            ax.set_xlim([0, np.max(data[1:, -1])])
-            # fig.show()
-
-            # by visualization, tracer size < 30 px
-            f = np.append(np.expand_dims(np.arange(1, ret), 1), np.expand_dims(f, 1), axis=1)
-            df = pd.DataFrame(data=f, columns=['label', 'size'])
-            df_remain = df[df['size'] < 30]
+            s = data[1:, -1]
+            s = np.append(np.expand_dims(np.arange(1, ret), 1), np.expand_dims(s, 1), axis=1)
+            df = pd.DataFrame(data=s, columns=['label', 'size'])
             df_replace = df[df['size'] >= 30]
 
             for i in range(len(df_replace)):
                 label = df_replace.iloc[i, 0]
-                markers[markers == label] = 0
+                center[label, 0], center[label, 1] = np.nan, np.nan
+
+            self.pp = center[~np.isnan(center).any(axis=1), :]
+
+        else:
+            # visualize labeling
+            out_dir = self.out_dir + "/img/label"
+            os.makedirs(out_dir, exist_ok=True)
 
             color_src = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
             height, width = self.img.shape[:2]
@@ -107,24 +93,62 @@ class Pre(object):
             for y in range(0, height):
                 for x in range(0, width):
                     if markers[y, x] > 0:
-                        m = markers[y, x]
                         color_src[y, x] = colors[markers[y, x]]
                     else:
                         color_src[y, x] = [0, 0, 0]
 
-            cv2.putText(color_src, str(ret - 1), (20, 50), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 255))
+            cv2.imwrite(out_dir + "/labeled" + self.filename, color_src)
 
-            cv2.imshow("color_src", color_src)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            # graph visualization
+            s = data[1:, -1]
+            fig = plt.figure(figsize=(6, 4))
+            ax = fig.add_subplot(1, 1, 1)
+            ax.hist(s, bins=100)
+            ax.set_xlabel('size')
+            ax.set_ylabel('freq')
+            ax.set_xlim([0, np.max(data[1:, -1])])
+            fig.savefig(out_dir + "/" + "hist.png", dpi=300)
+            fig.show()
+
+            # by visualization, tracer size < 30 px
+            s = np.append(np.expand_dims(np.arange(1, ret), 1), np.expand_dims(s, 1), axis=1)
+            df = pd.DataFrame(data=s, columns=['label', 'size'])
+            df_replace = df[df['size'] >= 30]
+
+            for i in range(len(df_replace)):
+                label = df_replace.iloc[i, 0]
+                markers[markers == label] = 0
+
+            # re-visualize labeling
+            color_src = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
+            height, width = self.img.shape[:2]
+            colors = []
+
+            for i in range(1, ret + 1):
+                colors.append(np.array([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]))
+
+            for y in range(0, height):
+                for x in range(0, width):
+                    if markers[y, x] > 0:
+                        color_src[y, x] = colors[markers[y, x]]
+                    else:
+                        color_src[y, x] = [0, 0, 0]
+
+            cv2.imwrite(out_dir + "/clipped" + self.filename, color_src)
 
     def save_csv(self):
-        pass
+        out_dir = self.out_dir + "/csv/pp"
+        os.makedirs(out_dir, exist_ok=True)
+        filename = self.filename.replace('.bmp', '.csv')
+
+        cols = ['x', 'y']
+        df = pd.DataFrame(data=self.pp, columns=cols).astype('int64')
+        df.to_csv(out_dir + '/' + filename)
 
 
 if __name__ == '__main__':
-    in_d = '/media/takuya/ボリューム/M1/original/2021_05_19/fps_200_ss_600'
-    out_d = '/media/takuya/ボリューム/M1/result/2021_05_19'
+    in_d = '../../../data/in'
+    out_d = '../../../data/out'
     f_n_tmp = '_00000000.bmp'
     bg_img = cv2.imread(out_d + "/img/" + "bg_img.bmp", 0)
 
@@ -133,4 +157,6 @@ if __name__ == '__main__':
     pre.cali()
     pre.background_sub()
     pre.binary_otsu(l=0, h=255)
-    pre.labeling()
+    pre.trimming(upper_left=[25, 902], lower_right=[1279, 83])
+    pre.labeling(True)
+    pre.save_csv()
