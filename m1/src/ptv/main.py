@@ -94,6 +94,6 @@ if __name__ == '__main__':
 
     # send message to line
     elapsed_time = time.time() - p_start
-    line(message=f"\nProgram fin.\nTime: {elapsed_time/1000:.1f} [sec]")
+    line(message=f"\nProgram fin.\nTime: {elapsed_time} [ms]")
 
     print("Bye!!")
