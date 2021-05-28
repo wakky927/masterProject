@@ -5,8 +5,8 @@ import pandas as pd
 
 
 if __name__ == '__main__':
-    tmp = pd.read_csv('../../data/chessboard_tmp.csv', header=None)
-    res = pd.read_csv('../../data/Results.csv')
+    tmp = pd.read_csv('../../data/tmp/chessboard_tmp.csv', header=None)
+    res = pd.read_csv('../../data/tmp/Results.csv')
 
     r = np.array([['n', 'BX', 'BY']])
 
